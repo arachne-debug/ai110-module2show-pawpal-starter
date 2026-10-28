@@ -1,0 +1,53 @@
+classDiagram
+    %% PawPal+ UML Draft: Owner, Pet, ServiceRequest, Scheduler
+
+    class Owner {
+        +String id
+        +String name
+        +String contactInfo
+        +List~String~ preferredTimeWindows
+        +int priority
+        +addPet(Pet)
+        +removePet(petId)
+        +createRequest(serviceType, petId, window)
+    }
+
+    class Pet {
+        +String id
+        +String name
+        +String species
+        +int age
+        +List~String~ needs  %% e.g., walk, meds
+        +constraints()
+    }
+
+    class ServiceRequest {
+        +String id
+        +String ownerId
+        +String petId
+        +String serviceType
+        +int durationMinutes
+        +String preferredWindow
+        +bool isEmergency
+        +status
+        +validate()
+    }
+
+    class Scheduler {
+        +List~ServiceRequest~ requests
+        +List~String~ businessHours
+        +schedule(requests)
+        +findFeasibleSlots(request)
+        +assign(request, slot)
+        +notifyOwner(ownerId, message)
+    }
+
+    %% Relationships
+    Owner "1" o-- "0..*" Pet : owns
+    Owner "1" o-- "0..*" ServiceRequest : requests
+    ServiceRequest "1" --> "1" Pet : for
+    Scheduler "1" o-- "0..*" ServiceRequest : manages
+
+        %% Simple notes
+        note for Scheduler "Scheduler enforces hard constraints\n(time windows, duration, availability)"
+        end note

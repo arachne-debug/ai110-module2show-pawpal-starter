@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import List, Optional
 
 
@@ -13,6 +13,28 @@ class Task:
     time: str
     frequency: str = "once"
     completed: bool = False
+    day: Optional[str] = None
+
+    def __post_init__(self) -> None:
+        if self.day is None:
+            self.day = datetime.today().strftime("%Y-%m-%d")
+
+    @staticmethod
+    def time_to_minutes(value: str) -> int:
+        """Convert a time like 08:30 into minutes since midnight."""
+        hours, minutes = value.split(":")
+        return (int(hours) * 60) + int(minutes)
+
+    def next_day_copy(self) -> "Task":
+        """Create a copy of the task scheduled for the next day."""
+        tomorrow = (datetime.strptime(self.day, "%Y-%m-%d") + timedelta(days=1)).strftime("%Y-%m-%d")
+        return Task(
+            description=self.description,
+            time=self.time,
+            frequency=self.frequency,
+            completed=False,
+            day=tomorrow,
+        )
 
     def mark_complete(self) -> None:
         """Mark the task as complete."""
@@ -47,10 +69,12 @@ class Pet:
         return self.tasks
 
     def complete_task(self, description: str) -> bool:
-        """Mark the matching task complete and return whether it was found."""
+        """Mark the matching task complete and create the next daily task when needed."""
         for task in self.tasks:
             if task.description.lower() == description.lower():
                 task.mark_complete()
+                if task.frequency.lower() == "daily":
+                    self.tasks.append(task.next_day_copy())
                 return True
         return False
 
@@ -87,8 +111,11 @@ class Owner:
         """Return a readable owner summary."""
         return f"{self.name} ({len(self.pets)} pets)"
 
+
 @dataclass
 class ServiceRequest:
+    """Represents a scheduled pet service request."""
+
     id: str
     owner_id: str
     pet_id: str
@@ -101,13 +128,17 @@ class ServiceRequest:
     status: str = "pending"
 
     def validate(self) -> bool:
+        """Check that required service request fields are present."""
         return bool(self.owner_id and self.pet_id and self.service_type and self.preferred_window)
 
     def mark_scheduled(self) -> None:
+        """Set the request as scheduled."""
         self.status = "scheduled"
 
     def cancel(self) -> None:
+        """Cancel the request."""
         self.status = "cancelled"
+
 
 @dataclass
 class Scheduler:
@@ -129,9 +160,9 @@ class Scheduler:
         return self.owner.get_all_tasks()
 
     def organize_tasks(self) -> List[Task]:
-        """Sort tasks by time so they can be displayed in a plan."""
+        """Sort tasks by date and time so the schedule reads in order."""
         tasks = self.get_all_tasks()
-        return sorted(tasks, key=lambda task: task.time)
+        return sorted(tasks, key=lambda task: (task.day or datetime.today().strftime("%Y-%m-%d"), Task.time_to_minutes(task.time)))
 
     def get_today_schedule(self) -> List[Task]:
         """Return the ordered schedule for the day."""
@@ -155,10 +186,21 @@ class Scheduler:
             lines.append(f"- {task.time} | {pet_label} | {task.description} | {status}")
         return "\n".join(lines)
 
+    def find_conflicts(self) -> List[str]:
+        """Return a list of times that are duplicated across tasks."""
+        tasks = self.get_all_tasks()
+        counts: dict[str, int] = {}
+        for task in tasks:
+            key = task.time
+            counts[key] = counts.get(key, 0) + 1
+        return sorted(time for time, count in counts.items() if count > 1)
+
     def check_conflict(self, slot: str) -> bool:
-        return slot in self.scheduled_slots
+        """Check whether a time slot is already in use."""
+        return slot in self.find_conflicts()
 
     def schedule(self, requests: Optional[List[ServiceRequest]] = None) -> List[ServiceRequest]:
+        """Schedule an ordered list of service requests while skipping duplicate slots."""
         if requests is not None:
             self.requests = requests
 
@@ -179,9 +221,11 @@ class Scheduler:
         return self.requests
 
     def find_feasible_slots(self, request: ServiceRequest) -> List[str]:
+        """Return the feasible times for a request."""
         return self.business_hours if self.business_hours else [request.preferred_window]
 
     def assign(self, request: ServiceRequest, slot: str) -> bool:
+        """Assign a request to a feasible, non-conflicting slot."""
         if slot not in self.find_feasible_slots(request) or self.check_conflict(slot):
             return False
         request.status = "scheduled"
@@ -191,4 +235,5 @@ class Scheduler:
         return True
 
     def notify_owner(self, owner_id: str, message: str) -> str:
+        """Return a simple owner notification message."""
         return f"Owner {owner_id}: {message}"

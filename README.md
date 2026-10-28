@@ -54,21 +54,36 @@ Today's Schedule:
 - 18:00 | Mochi | Play session | Pending
 ```
 
-## 🧪 Testing PawPal+
+## Testing PawPal+
+
+Run the automated test suite with:
 
 ```bash
-# Run the full test suite:
-pytest
-
-# Run with coverage:
-pytest --cov
+python -m pytest
 ```
 
-Sample test output:
+These tests cover the most important scheduler behaviors:
+- task completion updates the task state correctly
+- new tasks are added to the pet successfully
+- tasks are sorted in chronological order
+- daily tasks create a next-day copy after completion
+- duplicate time slots are detected as scheduling conflicts
 
+Successful test run:
+
+```text
+============================= test session starts ==============================
+platform win32 -- Python 3.14.8, pytest-9.1.1, pluggy-1.6.0
+rootdir: C:\Users\qes2\ai110-module2show-pawpal-starter
+plugins: anyio-4.15.1
+collected 5 items
+
+tests\test_pawpal.py .....                                               [100%]
+
+============================== 5 passed in 0.05s ==============================
 ```
-# Paste your pytest output here
-```
+
+Confidence Level: ★★★★☆ (4/5)
 
 ## 📐 Smarter Scheduling
 

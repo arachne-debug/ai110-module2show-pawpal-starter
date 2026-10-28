@@ -5,12 +5,26 @@
 **a. Initial design**
 
 - Briefly describe your initial UML design.
+
 - What classes did you include, and what responsibilities did you assign to each?
+
+My initial UML design centered on four main classes: `Owner`, `Pet`, `ServiceRequest`, and `Scheduler`.
+
+- `Owner`: represents the client who has one or more pets and sets preferences such as preferred service windows and priority. It also manages pet ownership and creates requests.
+- `Pet`: represents the animal being cared for. It stores identifying information, pet needs (for example walking or medication), and any special constraints or notes.
+- `ServiceRequest`: represents a specific care task. It tracks the owner, pet, service type, time window, duration, and whether it is urgent or emergency-level.
+- `Scheduler`: is responsible for matching service requests to feasible time slots while respecting availability, duration limits, and scheduling priorities.
+
+The design keeps the data models simple and gives the scheduling logic a single place to enforce constraints and resolve conflicts.
 
 **b. Design changes**
 
 - Did your design change during implementation?
 - If yes, describe at least one change and why you made it.
+
+Yes. Based on the AI review of the skeleton, I refined the model by making the `Pet`-to-`Owner` relationship more explicit and adding scheduling metadata to `ServiceRequest`.
+
+I changed `Pet` to include an `owner_id` field and updated `Owner.add_pet()` so it links the pet back to the owner. I also added `priority` and `assigned_slot` to `ServiceRequest`, and `scheduled_slots` to `Scheduler`. This was important because the initial design had a loose relationship between owners and pets, and it did not clearly model scheduling conflicts or priority ordering. With these changes, the scheduler can better handle high-priority and emergency requests without overbooking the same slot.
 
 ---
 
